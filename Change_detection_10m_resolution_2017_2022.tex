@@ -1,0 +1,427 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{lmodern}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\ifLuaTeX
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same} % disable monospaced font for URLs
+\hypersetup{
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\author{}
+\date{\vspace{-2.5em}}
+
+\begin{document}
+
+\#----------------------------- require(envimaR) \# MANDANTORY: defining
+the root folder DO NOT change this line rootDIR =
+``C:/Users/jomue/edu/geoAI''
+source(file.path(envimaR::alternativeEnvi(root\_folder =
+rootDIR),``src/geo\_AI\_setup.R''),echo = TRUE) \#read data
+Koralle\textless-sf::st\_read(``E:/Koralle/images/Coral\_10m\_2022.shp'')
+Koralle Coral\_ras =
+raster::stack(``E:/Koralle/images/Coral\_2017\_new.tif'') Coral\_ras
+names(Coral\_ras)\textless-c(``red'',``green'',``blue'')
+Coral\_ras\textless-subset(Coral\_ras,c(``red'',``green'',``blue''))
+Koralle = sf::st\_transform(Koralle, crs(Coral\_ras)) Coral\_extent
+\textless- raster::extent(Coral\_ras) Koralle \textless-
+sf::st\_crop(Koralle{[}1{]}, Coral\_extent) Koralle \# rasterize the
+coral rasterized\_vector \textless- raster::rasterize(Koralle,
+Coral\_ras{[}{[}1{]}{]}) \# reclassify to 0 and 1
+rasterized\_vector{[}is.na(rasterized\_vector{[}{]}){]} \textless- 0
+rasterized\_vector{[}rasterized\_vector \textgreater{} 1{]} \textless- 1
+\#save raster::writeRaster(rasterized\_vector,
+(``E:/Koralle/images/Coral\_Mask\_10.tif''), overwrite = T) \# divide to
+training and testing extent e\_test \textless- raster::extent(3e+05,
+7390240, 320000, 74500000) e\_train \textless- raster::extent(320000,
+7620000, 409800, 7500040)
+
+coral\_mask\_train \textless- raster::crop(rasterized\_vector, e\_train)
+coral\_dop\_train \textless- raster::crop(Coral\_ras, e\_train)
+
+coral\_mask\_test \textless- raster::crop(rasterized\_vector, e\_test)
+coral\_dop\_test \textless- raster::crop(Coral\_ras, e\_test)
+
+raster::writeRaster( coral\_mask\_test,
+(``E:/Koralle/images/Coral\_Mask\_10m\_test.tif''), overwrite = T )
+
+raster::writeRaster( coral\_dop\_test,
+(``E:/Koralle/images/Coral\_Dop\_10m\_test.tif''), overwrite = T )
+
+raster::writeRaster( coral\_mask\_train,
+(``E:/Koralle/images/Coral\_Mask\_10m\_train.tif''), overwrite = T )
+
+raster::writeRaster( coral\_dop\_train,
+(``E:/Koralle/images/Coral\_Dop\_10m\_train.tif''), overwrite = T )
+
+subset\_ds \textless- function(input\_raster, model\_input\_shape, path,
+targetname = ````, mask = FALSE) \{ \# determine next number of quadrats
+in x and y direction, by simple rounding targetsizeX \textless-
+model\_input\_shape{[}1{]} targetsizeY \textless-
+model\_input\_shape{[}2{]} inputX \textless- ncol(input\_raster) inputY
+\textless- nrow(input\_raster) \# determine dimensions of raster so that
+\# it can be split by whole number of subsets (by shrinking it) while
+(inputX \%\% targetsizeX != 0) \{ inputX = inputX - 1 \} while (inputY
+\%\% targetsizeY != 0) \{ inputY = inputY - 1 \} \# determine difference
+diffX \textless- ncol(input\_raster) - inputX diffY \textless-
+nrow(input\_raster) - inputY \# determine new dimensions of raster and
+crop, \# cutting evenly on all sides if possible newXmin \textless-
+floor(diffX / 2) newXmax \textless- ncol(input\_raster) - ceiling(diffX
+/ 2) - 1 newYmin \textless- floor(diffY / 2) newYmax \textless-
+nrow(input\_raster) - ceiling(diffY / 2) - 1 rst\_cropped \textless-
+suppressMessages(raster::crop( input\_raster,
+raster::extent(input\_raster, newYmin, newYmax, newXmin, newXmax) )) agg
+\textless- suppressMessages(raster::aggregate(rst\_cropped{[}{[}1{]}{]},
+c(targetsizeX, targetsizeY))) agg{[}{]} \textless-
+suppressMessages(1:ncell(agg)) agg\_poly \textless-
+suppressMessages(raster::rasterToPolygons(agg)) names(agg\_poly)
+\textless-''polis'' if (mask) \{ lapply( seq\_along(agg), FUN =
+function(i) \{ subs \textless- local(\{ e1 \textless-
+raster::extent(agg\_poly{[}agg\_poly\(polis == i,])  subs <- suppressMessages(raster::crop(rst_cropped, e1))  })  writePNG(as.array(subs),  target = paste0(path, targetname, i, ".png"))  }  )  }  else{  lapply(  seq_along(agg),  FUN = function(i) {  subs <- local({  e1 <- raster::extent(agg_poly[agg_poly\)polis
+== i,{]}) subs \textless- suppressMessages(raster::crop(rst\_cropped,
+e1)) \# rescale to 0-1, for png export if (mask == FALSE) \{ subs
+\textless- suppressMessages((subs - cellStats(subs, ``min'')) /
+(cellStats(subs, ``max'') - cellStats(subs, ``min''))) \} \})
+writePNG(as.array(subs), target = paste0(path, targetname, i, ``.png''))
+\} ) \} rm(subs, agg, agg\_poly) gc() return(rst\_cropped) \}
+remove\_files \textless- function(df) \{ lapply( seq(1, nrow(df)), FUN =
+function(i) \{ local(\{ fil =
+df\(list_masks[i]  png = readPNG(fil)  len = length(png)  if (AllEqual(png)) {  file.remove(df\)list\_dops{[}i{]})
+file.remove(df\$list\_masks{[}i{]}) \} else \{ \} \}) \} ) \}
+
+\hypertarget{read-training-data}{%
+\section{read training data}\label{read-training-data}}
+
+coral\_mask\_train \textless-
+raster::stack(``E:/Koralle/images/Coral\_Mask\_10m\_train.tif'')
+coral\_dop\_train \textless-
+raster::stack(``E:/Koralle/images/Coral\_Dop\_10m\_train.tif'') \# set
+the size of each image model\_input\_shape = c(128, 128)
+
+subset\_ds( input\_raster = coral\_mask\_train, path =
+``E:/Koralle/images/Cor\_10/'', mask = TRUE, model\_input\_shape =
+model\_input\_shape )
+
+subset\_ds( input\_raster = coral\_dop\_train, path =
+``E:/Koralle/images/Dop\_10/'', mask = FALSE, model\_input\_shape =
+model\_input\_shape )
+
+\hypertarget{list-all-created-files-in-both-folders}{%
+\section{list all created files in both
+folders}\label{list-all-created-files-in-both-folders}}
+
+list\_dops \textless- list.files(``E:/Koralle/images/Dop\_10/'',
+full.names = TRUE, pattern = ``\emph{.png'') list\_masks \textless-
+list.files(''E:/Koralle/images/Cor\_10/'', full.names = TRUE, pattern =
+''}.png'')
+
+\hypertarget{create-a-data-fram}{%
+\section{create a data fram}\label{create-a-data-fram}}
+
+df = data.frame(list\_dops, list\_masks)
+
+remove\_files(df)
+
+\hypertarget{list-the-files-again}{%
+\section{list the files again}\label{list-the-files-again}}
+
+files \textless- data.frame( img = list.files(
+file.path(``E:/Koralle/images/Dop\_10/''), full.names = TRUE, pattern =
+``\emph{.png'' ), mask = list.files(
+file.path(''E:/Koralle/images/Cor\_10/''), full.names = TRUE, pattern =
+''}.png'' ) ) \# split randomly into training and validation (not
+testing!!) data sets set.seed(7) data \textless- initial\_split(files,
+prop = 0.8)
+
+\hypertarget{function-to-prepare-your-data-set-for-all-further-processes}{%
+\section{function to prepare your data set for all further
+processes}\label{function-to-prepare-your-data-set-for-all-further-processes}}
+
+prepare\_ds \textless- function(files = NULL, train, predict = FALSE,
+subsets\_path = NULL, model\_input\_shape = c(256, 256), batch\_size =
+batch\_size, visual = FALSE) \{ if (!predict) \{ \# function for random
+change of saturation,brightness and hue, \# will be used as part of the
+augmentation spectral\_augmentation \textless- function(img) \{ img
+\textless- tf\(image\)random\_brightness(img, max\_delta = 0.1) img
+\textless- tf\(image\)random\_contrast(img, lower = 0.9, upper = 1.1)
+img \textless- tf\(image\)random\_saturation(img, lower = 0.9, upper =
+1.1) \# make sure we still are between 0 and 1 img \textless-
+tf\(clip_by_value(img, 0, 1)  }  # create a tf_dataset from the input data.frame  # right now still containing only paths to images  dataset <- tensor_slices_dataset(files)  # use dataset_map to apply function on each record of the dataset  # (each record being a list with two items: img and mask), the  # function is list_modify, which modifies the list items  # 'img' and 'mask' by using the results of applying decode_png on the img and the mask  # -> i.e. pngs are loaded and placed where the paths to the files were (for each record in dataset)  dataset <-  dataset_map(dataset, function(.x)  list_modify(  .x,  img = tf\)image\(decode_png(tf\)io\(read_file(.x\)img)),
+mask =
+tf\(image\)decode\_png(tf\(io\)read\_file(.x\(mask))  ))  # convert to float32:  # for each record in dataset, both its list items are modified  # by the result of applying convert_image_dtype to them  dataset <-  dataset_map(dataset, function(.x)  list_modify(  .x,  img = tf\)image\(convert_image_dtype(.x\)img,
+dtype = tf\(float32),  mask = tf\)image\(convert_image_dtype(.x\)mask,
+dtype =
+tf\(float32)  ))  # data augmentation performed on training set only  if (train) {  # augmentation 1: flip left right, including random change of  # saturation, brightness and contrast  # for each record in dataset, only the img item is modified by the result  # of applying spectral_augmentation to it  augmentation <-  dataset_map(dataset, function(.x)  list_modify(.x, img = spectral_augmentation(.x\)img)))
+\#\ldots as opposed to this, flipping is applied to img and mask of each
+record augmentation \textless- dataset\_map(augmentation, function(.x)
+list\_modify( .x, img =
+tf\(image\)flip\_left\_right(.x\(img),  mask = tf\)image\(flip_left_right(.x\)mask)
+)) dataset\_augmented \textless- dataset\_concatenate(augmentation,
+dataset) \# augmentation 2: flip up down, \# including random change of
+saturation, brightness and contrast augmentation \textless-
+dataset\_map(dataset, function(.x) list\_modify(.x, img =
+spectral\_augmentation(.x\(img)))  augmentation <-  dataset_map(augmentation, function(.x)  list_modify(  .x,  img = tf\)image\(flip_up_down(.x\)img),
+mask =
+tf\(image\)flip\_up\_down(.x\(mask)  ))  dataset_augmented <-  dataset_concatenate(augmentation, dataset_augmented)  # augmentation 3: flip left right AND up down,  # including random change of saturation, brightness and contrast  augmentation <-  dataset_map(dataset, function(.x)  list_modify(.x, img = spectral_augmentation(.x\)img)))
+augmentation \textless- dataset\_map(augmentation, function(.x)
+list\_modify( .x, img =
+tf\(image\)flip\_left\_right(.x\(img),  mask = tf\)image\(flip_left_right(.x\)mask)
+)) augmentation \textless- dataset\_map(augmentation, function(.x)
+list\_modify( .x, img =
+tf\(image\)flip\_up\_down(.x\(img),  mask = tf\)image\(flip_up_down(.x\)mask)
+)) dataset\_augmented \textless- dataset\_concatenate(augmentation,
+dataset\_augmented) \} \# shuffling on training set only \# unsauber if
+(!visual) \{ if (train) \{ dataset \textless-
+dataset\_shuffle(dataset\_augmented, buffer\_size = batch\_size * 256)
+\} \# train in batches; batch size might need to be adapted depending on
+\# available memory dataset \textless- dataset\_batch(dataset,
+batch\_size) \} if (visual) \{ dataset \textless- dataset\_augmented \}
+\# output needs to be unnamed dataset \textless- dataset\_map(dataset,
+unname) \} else\{ \# make sure subsets are read in in correct order \#
+so that they can later be reassembled correctly \# needs files to be
+named accordingly (only number) o \textless-
+order(as.numeric(tools::file\_path\_sans\_ext(basename(
+list.files(subsets\_path) )))) subset\_list \textless-
+list.files(subsets\_path, full.names = T){[}o{]} dataset \textless-
+tensor\_slices\_dataset(subset\_list) dataset \textless-
+dataset\_map(dataset, function(.x)
+tf\(image\)decode\_png(tf\(io\)read\_file(.x))) dataset \textless-
+dataset\_map(dataset, function(.x) tf\(image\)convert\_image\_dtype(.x,
+dtype = tf\$float32)) dataset \textless- dataset\_batch(dataset,
+batch\_size) dataset \textless- dataset\_map(dataset, unname) \} \}
+
+\hypertarget{one-more-parameter}{%
+\section{one more parameter}\label{one-more-parameter}}
+
+batch\_size = 8
+
+\hypertarget{prepare-data-for-training}{%
+\section{prepare data for training}\label{prepare-data-for-training}}
+
+training\_dataset \textless- prepare\_ds( training(data), train = TRUE,
+predict = FALSE, model\_input\_shape = model\_input\_shape, batch\_size
+= batch\_size )
+
+\hypertarget{also-prepare-validation-data}{%
+\section{also prepare validation
+data}\label{also-prepare-validation-data}}
+
+validation\_dataset \textless- prepare\_ds( testing(data), train =
+FALSE, predict = FALSE, model\_input\_shape = model\_input\_shape,
+batch\_size = batch\_size )
+
+\hypertarget{we-first-get-a-all-our-training-data}{%
+\section{we first get a all our training
+data}\label{we-first-get-a-all-our-training-data}}
+
+it \textless- as\_iterator(training\_dataset) it \textless- iterate(it)
+\# head(it)
+
+\hypertarget{we-convert-our-data-to-an-array-and-also-subset-our-iterator-e.g.}{%
+\section{we convert our data to an array and also subset our iterator
+e.g.~}\label{we-convert-our-data-to-an-array-and-also-subset-our-iterator-e.g.}}
+
+\hypertarget{with-the-4th-batch-4-of-the-images-1}{%
+\section{with the 4th batch ({[}{[}4{]}{]}) of the images
+({[}{[}1{]}{]})}\label{with-the-4th-batch-4-of-the-images-1}}
+
+im \textless-as.array(it{[}{[}4{]}{]}{[}{[}1{]}{]}) \# then we subset
+just take the first image out of our batch im \textless- im{[}1,,,{]} \#
+and plot it plot(as.raster(im))
+
+\hypertarget{and-for-the-according-mask-it-is-almost-the-same}{%
+\section{and for the according mask it is almost the
+same}\label{and-for-the-according-mask-it-is-almost-the-same}}
+
+ma \textless-as.array(it{[}{[}4{]}{]}{[}{[}2{]}{]}) ma \textless-
+ma{[}1,,,{]} plot(as.raster(ma))
+
+\#U-Net \# function to build a U-Net \# of course it is possible to
+change the input\_shape get\_unet\_128 \textless- function(input\_shape
+= c(128, 128, 3), num\_classes = 1) \{ inputs \textless-
+layer\_input(shape = input\_shape) \# 128 down1 \textless- inputs
+\%\textgreater\% layer\_conv\_2d(filters = 64, kernel\_size = c(3, 3),
+padding = ``same'') \%\textgreater\% layer\_activation(``relu'')
+\%\textgreater\% layer\_conv\_2d(filters = 64, kernel\_size = c(3, 3),
+padding = ``same'') \%\textgreater\% layer\_activation(``relu'')
+down1\_pool \textless- down1 \%\textgreater\%
+layer\_max\_pooling\_2d(pool\_size = c(2, 2), strides = c(2, 2)) \# 64
+down2 \textless- down1\_pool \%\textgreater\% layer\_conv\_2d(filters =
+128, kernel\_size = c(3, 3), padding = ``same'') \%\textgreater\%
+layer\_activation(``relu'') \%\textgreater\% layer\_conv\_2d(filters =
+128, kernel\_size = c(3, 3), padding = ``same'') \%\textgreater\%
+layer\_activation(``relu'') down2\_pool \textless- down2
+\%\textgreater\% layer\_max\_pooling\_2d(pool\_size = c(2, 2), strides =
+c(2, 2)) \# 32 down3 \textless- down2\_pool \%\textgreater\%
+layer\_conv\_2d(filters = 256, kernel\_size = c(3, 3), padding =
+``same'') \%\textgreater\% layer\_activation(``relu'') \%\textgreater\%
+layer\_conv\_2d(filters = 256, kernel\_size = c(3, 3), padding =
+``same'') \%\textgreater\% layer\_activation(``relu'') down3\_pool
+\textless- down3 \%\textgreater\% layer\_max\_pooling\_2d(pool\_size =
+c(2, 2), strides = c(2, 2)) \# 16 down4 \textless- down3\_pool
+\%\textgreater\% layer\_conv\_2d(filters = 512, kernel\_size = c(3, 3),
+padding = ``same'') \%\textgreater\% layer\_activation(``relu'')
+\%\textgreater\% layer\_conv\_2d(filters = 512, kernel\_size = c(3, 3),
+padding = ``same'') \%\textgreater\% layer\_activation(``relu'')
+down4\_pool \textless- down4 \%\textgreater\%
+layer\_max\_pooling\_2d(pool\_size = c(2, 2), strides = c(2, 2)) \# \# 8
+center \textless- down4\_pool \%\textgreater\% layer\_conv\_2d(filters =
+1024, kernel\_size = c(3, 3), padding = ``same'') \%\textgreater\%
+layer\_activation(``relu'') \%\textgreater\% layer\_conv\_2d(filters =
+1024, kernel\_size = c(3, 3), padding = ``same'') \%\textgreater\%
+layer\_activation(``relu'') \# center up4 \textless- center
+\%\textgreater\% layer\_upsampling\_2d(size = c(2, 2)) \%\textgreater\%
+\{ layer\_concatenate(inputs = list(down4, .), axis = 3) \}
+\%\textgreater\% layer\_conv\_2d(filters = 512, kernel\_size = c(3, 3),
+padding = ``same'') \%\textgreater\% layer\_activation(``relu'')
+\%\textgreater\% layer\_conv\_2d(filters = 512, kernel\_size = c(3, 3),
+padding = ``same'') \%\textgreater\% layer\_activation(``relu'')
+\%\textgreater\% layer\_conv\_2d(filters = 512, kernel\_size = c(3, 3),
+padding = ``same'') \%\textgreater\% layer\_activation(``relu'') \# 16
+up3 \textless- up4 \%\textgreater\% layer\_upsampling\_2d(size = c(2,
+2)) \%\textgreater\% \{ layer\_concatenate(inputs = list(down3, .), axis
+= 3) \} \%\textgreater\% layer\_conv\_2d(filters = 256, kernel\_size =
+c(3, 3), padding = ``same'') \%\textgreater\%
+layer\_activation(``relu'') \%\textgreater\% layer\_conv\_2d(filters =
+256, kernel\_size = c(3, 3), padding = ``same'') \%\textgreater\%
+layer\_activation(``relu'') \%\textgreater\% layer\_conv\_2d(filters =
+256, kernel\_size = c(3, 3), padding = ``same'') \%\textgreater\%
+layer\_activation(``relu'') \# 32 up2 \textless- up3 \%\textgreater\%
+layer\_upsampling\_2d(size = c(2, 2)) \%\textgreater\% \{
+layer\_concatenate(inputs = list(down2, .), axis = 3) \}
+\%\textgreater\% layer\_conv\_2d(filters = 128, kernel\_size = c(3, 3),
+padding = ``same'') \%\textgreater\% layer\_activation(``relu'')
+\%\textgreater\% layer\_conv\_2d(filters = 128, kernel\_size = c(3, 3),
+padding = ``same'') \%\textgreater\% layer\_activation(``relu'')
+\%\textgreater\% layer\_conv\_2d(filters = 128, kernel\_size = c(3, 3),
+padding = ``same'') \%\textgreater\% layer\_activation(``relu'') \# \#
+64 up1 \textless- up2 \%\textgreater\% layer\_upsampling\_2d(size = c(2,
+2)) \%\textgreater\% \{ layer\_concatenate(inputs = list(down1, .), axis
+= 3) \} \%\textgreater\% layer\_conv\_2d(filters = 64, kernel\_size =
+c(3, 3), padding = ``same'') \%\textgreater\%
+layer\_activation(``relu'') \%\textgreater\% layer\_conv\_2d(filters =
+64, kernel\_size = c(3, 3), padding = ``same'') \%\textgreater\%
+layer\_activation(``relu'') \%\textgreater\% layer\_conv\_2d(filters =
+64, kernel\_size = c(3, 3), padding = ``same'') \%\textgreater\%
+layer\_activation(``relu'') \# 128 classify \textless- layer\_conv\_2d(
+up1, filters = num\_classes, kernel\_size = c(1, 1), activation =
+``sigmoid'' ) model \textless- keras\_model(inputs = inputs, outputs =
+classify) return(model) \}
+
+unet\_model \textless- get\_unet\_128() \# compile the model unet\_model
+\%\textgreater\% compile( optimizer = optimizer\_adam(learning\_rate =
+0.0001), loss = ``binary\_crossentropy'', metrics = ``accuracy'' )
+
+\hypertarget{train-the-model}{%
+\section{train the model}\label{train-the-model}}
+
+hist \textless- unet\_model \%\textgreater\% fit( training\_dataset,
+validation\_data = validation\_dataset, epochs = 10, verbose = 1 )
+
+\hypertarget{save-the-model}{%
+\section{save the model}\label{save-the-model}}
+
+unet\_model \%\textgreater\%
+save\_model\_hdf5(file.path(``E:/Koralle/images/models/'',
+``unet\_corals\_10.hdf5''))
+
+plot(hist)
+
+\hypertarget{load-the-test-data}{%
+\section{load the test data}\label{load-the-test-data}}
+
+coral\_mask\_test \textless-
+stack(``E:/Koralle/images/Coral\_Mask\_10m\_test.tif'') coral\_dop\_test
+\textless- stack(``E:/Koralle/images/Coral\_Dop\_10m\_test.tif'')
+target\_rst \textless- subset\_ds( input\_raster = coral\_mask\_test,
+path = ``E:/Koralle/images/Cor\_test\_10/'', mask = TRUE,
+model\_input\_shape = model\_input\_shape ) subset\_ds( input\_raster =
+coral\_dop\_test, path = ``E:/Koralle/images/Dop\_test\_10/'', mask =
+FALSE, model\_input\_shape = model\_input\_shape ) \# write the
+target\_rst to later rebuild your image writeRaster( target\_rst,
+file.path(``E:/Koralle/images/models/model\_test\_10/'',``coral\_mask\_10m\_test\_target.tif''),
+overwrite = T ) test\_file \textless- data.frame( img = list.files(
+file.path(``E:/Koralle/images/Dop\_test\_10''), full.names = T, pattern
+= ``\emph{.png'' ), mask = list.files(
+file.path(''E:/Koralle/images/Cor\_test\_10''), full.names = T, pattern
+= ''}.png'' ) )
+
+testing\_dataset \textless- prepare\_ds( test\_file, train =FALSE,
+predict = FALSE, model\_input\_shape = model\_input\_shape, batch\_size
+= batch\_size ) \# load a U-Net unet\_model \textless-
+load\_model\_hdf5(file.path(``E:/Koralle/images/models/'',
+``unet\_corals\_10.hdf5''), compile = TRUE) \# evaluate the model with
+test set ev \textless-
+unet\_model\(evaluate(testing_dataset) # prepare data for prediction prediction_dataset <-  prepare_ds(  predict = TRUE,  subsets_path = paste0(file.path("E:/Koralle/images/Dop_test_10/")),  model_input_shape = model_input_shape,  batch_size = batch_size  ) # get sample of data from testing data t_sample <-  floor(runif(n = 5, min = 1, max = nrow(test_file))) # simple visual comparison of mask, image and prediction for (i in t_sample) {  png_path <- test_file  png_path <- png_path[i,]  img <- image_read(png_path[, 1])  mask <- image_read(png_path[, 2])  pred <-  image_read(as.raster(predict(object = unet_model, testing_dataset)[i, , ,]))  out <- image_append(c(  image_annotate(  mask,  "Mask",  size = 10,  color = "black",  boxcolor = "white"  ),  image_annotate(  img,  "Original Image",  size = 10,  color = "black",  boxcolor = "white"  ),  image_annotate(  pred,  "Prediction",  size = 10,  color = "black",  boxcolor = "white"  )  ))  plot(out) } # function to rebuild your image rebuild_img <-  function(pred_subsets,  out_path,  target_rst,  model_name) {  subset_pixels_x <- ncol(pred_subsets[1, , , ])  subset_pixels_y <- nrow(pred_subsets[1, , , ])  tiles_rows <- nrow(target_rst) / subset_pixels_y  tiles_cols <- ncol(target_rst) / subset_pixels_x  # load target image to determine dimensions  target_stars <- st_as_stars(target_rst, proxy = F)  #prepare subfolder for output  result_folder <- paste0(out_path, model_name)  if (dir.exists(result_folder)) {  unlink(result_folder, recursive = T)  }  dir.create(path = result_folder)  # for each tile, create a stars from corresponding predictions,  # assign dimensions using original/target image, and save as tif:  for (crow in 1:tiles_rows) {  for (ccol in 1:tiles_cols) {  i <- (crow - 1) * tiles_cols + (ccol - 1) + 1  dimx <-  c(((ccol - 1) * subset_pixels_x + 1), (ccol * subset_pixels_x))  dimy <-  c(((crow - 1) * subset_pixels_y + 1), (crow * subset_pixels_y))  cstars <- st_as_stars(t(pred_subsets[i, , , 1]))  attr(cstars, "dimensions")[[2]]\)delta
+= -1 \#set dimensions using original raster st\_dimensions(cstars)
+\textless- st\_dimensions(target\_stars{[}, dimx{[}1{]}:dimx{[}2{]},
+dimy{[}1{]}:dimy{[}2{]}{]}){[}1:2{]} write\_stars(cstars, dsn =
+paste0(result\_folder, ``/\emph{out}'', i, ``.tif'')) \} \} starstiles
+\textless- as.vector(list.files(result\_folder, full.names = T), mode =
+``character'') sf::gdal\_utils( util = ``buildvrt'', source =
+starstiles, destination = paste0(result\_folder, ``/mosaic.vrt'') )
+sf::gdal\_utils( util = ``warp'', source = paste0(result\_folder,
+``/mosaic.vrt''), destination = paste0(result\_folder, ``/mosaic.tif'')
+) \} target\_rst \textless-
+raster(file.path(``E:/Koralle/images/models/model\_test\_10/'',``coral\_mask\_10m\_test\_target.tif''))
+\# make the actual prediction pred\_subsets \textless- predict(object =
+unet\_model, x = prediction\_dataset) \# name your output path
+model\_name \textless- ``unet\_abc\_10'' \# rebuild .tif from each patch
+rebuild\_img( pred\_subsets = pred\_subsets, out\_path =
+paste0(file.path(``E:/Koralle/images/prediction/'', ``/'')), target\_rst
+= target\_rst, model\_name = model\_name )
+
+\end{document}
