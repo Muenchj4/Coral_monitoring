@@ -1,89 +1,63 @@
+
 #-----------------------------
 require(envimaR)
 # MANDANTORY: defining the root folder DO NOT change this line
 rootDIR = "C:/Users/jomue/edu/geoAI"
 source(file.path(envimaR::alternativeEnvi(root_folder = rootDIR),"src/geo_AI_setup.R"),echo = TRUE)
 #read data
-Koralle<-sf::st_read("E:/Koralle/images/Coral_bleaching_10m_2022.shp")
+Koralle<-sf::st_read("E:/Koralle/images/Coral_10m_2022.shp")
 Koralle
-Koralle<-Koralle[,c(2:6)]
-Koralle
-
-
-Coral_ras = raster::stack("E:/Koralle/images/Coral_10m_2022.tif")
+Coral_ras = raster::stack("E:/Koralle/images/Coral_2017_new.tif")
 Coral_ras
 names(Coral_ras)<-c("red","green","blue")
 Coral_ras<-subset(Coral_ras,c("red","green","blue"))
 Koralle = sf::st_transform(Koralle, crs(Coral_ras))
 Coral_extent <- raster::extent(Coral_ras)
-Coral_ras
+Koralle <- sf::st_crop(Koralle[1], Coral_extent)
 Koralle
-Koralle<- sf::st_crop(Koralle, Coral_extent)
-Koralle
-
-
 # rasterize the coral
 rasterized_vector <- raster::rasterize(Koralle, Coral_ras[[1]])
-rasterized_vector
-
-
-rasterized_vector[is.na(rasterized_vector[2:4])]  <- 1
-rasterized_vector[is.na(rasterized_vector[1,3,4])]  <- 2
-rasterized_vector[is.na(rasterized_vector[1,2,4])]  <- 3
-rasterized_vector[is.na(rasterized_vector[1,2,3])]  <- 4
-rasterized_vector
+# reclassify to 0 and 1
+rasterized_vector[is.na(rasterized_vector[])] <- 0
+rasterized_vector[rasterized_vector > 1] <- 1
 #save
 raster::writeRaster(rasterized_vector,
-                    ("E:/Koralle/images/Coral_bleaching_Mask.tif"),
+                    ("E:/Koralle/images/Coral_Mask_10.tif"),
                     overwrite = T)
-
-
 # divide to training and testing extent
 e_test <- raster::extent(3e+05, 7390240, 320000, 74500000)
 e_train <- raster::extent(320000, 7620000, 409800, 7500040)
 
-coral_bleaching_mask_train<-crop(rasterized_vector, e_train)
-coral_bleaching_dop_train<-crop(Coral_ras,e_train)
+coral_mask_train <- raster::crop(rasterized_vector, e_train)
+coral_dop_train <- raster::crop(Coral_ras, e_train)
 
-
-coral_bleaching_mask_test<-crop(rasterized_vector, e_test)
-coral_bleaching_dop_test<-crop(Coral_ras,e_test)
-
-
-
-
+coral_mask_test <-  raster::crop(rasterized_vector, e_test)
+coral_dop_test <- raster::crop(Coral_ras, e_test)
 
 
 raster::writeRaster(
-  coral_bleaching_mask_train,
-  ("E:/Koralle/images/Coral_Mask_bleaching_train.tif"),
-  overwrite = T
-)
-
-
-
-raster::writeRaster(
-  coral_bleaching_dop_train,
-  ("E:/Koralle/images/Coral_Dop_bleaching_train.tif"),
+  coral_mask_test,
+  ("E:/Koralle/images/Coral_Mask_10m_test.tif"),
   overwrite = T
 )
 
 raster::writeRaster(
-  coral_bleaching_mask_test,
-  ("E:/Koralle/images/Coral_Mask_bleaching_test.tif"),
+  coral_dop_test,
+  ("E:/Koralle/images/Coral_Dop_10m_test.tif"),
   overwrite = T
 )
-
-
 
 raster::writeRaster(
-  coral_bleaching_dop_test,
-  ("E:/Koralle/images/Coral_Dop_bleaching_test.tif"),
+  coral_mask_train,
+  ("E:/Koralle/images/Coral_Mask_10m_train.tif"),
   overwrite = T
 )
 
-
-
+raster::writeRaster(
+  coral_dop_train,
+  ("E:/Koralle/images/Coral_Dop_10m_train.tif"),
+  overwrite = T
+)
 
 
 subset_ds <-
@@ -147,7 +121,8 @@ subset_ds <-
             # rescale to 0-1, for png export
             if (mask == FALSE) {
               subs <-
-                suppressMessages((subs - cellStats(subs, "min")) / (cellStats(subs, "max") -                                                                    cellStats(subs, "min")))
+                suppressMessages((subs - cellStats(subs, "min")) / (cellStats(subs, "max") -
+                                                                      cellStats(subs, "min")))
             }
           })
           writePNG(as.array(subs),
@@ -178,62 +153,52 @@ remove_files <- function(df) {
 }
 
 # read training data
-coral_bleaching_mask_train <-
-  raster::stack("E:/Koralle/images/Coral_Mask_bleaching_train.tif")
-
-
-
-
-coral_bleaching_dop_train <-
-  raster::stack("E:/Koralle/images/Coral_Dop_bleaching_train.tif")
-
+coral_mask_train <-
+  raster::stack("E:/Koralle/images/Coral_Mask_10m_train.tif")
+coral_dop_train <-
+  raster::stack("E:/Koralle/images/Coral_Dop_10m_train.tif")
 # set the size of each image
 model_input_shape = c(128, 128)
 
 subset_ds(
-  input_raster = coral_bleaching_mask_train,
-  path = "E:/Koralle/images/Cor_bleaching/",
+  input_raster = coral_mask_train,
+  path = "E:/Koralle/images/Cor_10/",
   mask = TRUE,
   model_input_shape = model_input_shape
 )
 
 
-
-
 subset_ds(
-  input_raster = coral_bleaching_dop_train,
-  path = "E:/Koralle/images/Coral_Dop/",
+  input_raster = coral_dop_train,
+  path = "E:/Koralle/images/Dop_10/",
   mask = FALSE,
   model_input_shape = model_input_shape
 )
 
-
-# list all created files in all folders
-list_dops<-
-  list.files("E:/Koralle/images/Coral_Dop/", 
+# list all created files in both folders
+list_dops <-
+  list.files("E:/Koralle/images/Dop_10/",
              full.names = TRUE,
              pattern = "*.png")
-
-list_masks<-
-  list.files("E:/Koralle/images/Cor_bleaching/",
+list_masks <-
+  list.files("E:/Koralle/images/Cor_10/",
              full.names = TRUE,
              pattern = "*.png")
-
 
 # create a data fram
-df = data.frame(list_dops,list_masks)
+df = data.frame(list_dops, list_masks)
 
 remove_files(df)
 
 # list the files again
 files <- data.frame(
   img = list.files(
-    file.path("E:/Koralle/images/Coral_Dop"),
+    file.path("E:/Koralle/images/Dop_10/"),
     full.names = TRUE,
     pattern = "*.png"
   ),
   mask = list.files(
-    file.path("E:/Koralle/images/Cor_bleaching"),
+    file.path("E:/Koralle/images/Cor_10/"),
     full.names = TRUE,
     pattern = "*.png"
   )
@@ -417,10 +382,57 @@ im <- im[1,,,]
 # and plot it
 plot(as.raster(im))
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # and for the according mask it is almost the same
 ma <-as.array(it[[4]][[2]])
 ma <- ma[1,,,]
 plot(as.raster(ma))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #U-Net
 # function to build a U-Net
@@ -586,44 +598,69 @@ hist <- unet_model %>% fit(
   verbose = 1
 )
 
-
 # save the model
-unet_model %>% save_model_hdf5(file.path("E:/Koralle/images/models/", "unet_corals_bleaching.hdf5"),overwrite=T)
+unet_model %>% save_model_hdf5(file.path("E:/Koralle/images/models/", "unet_corals_10.hdf5"))
 
 plot(hist)
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # load the test data
 coral_mask_test <-
-  stack("E:/Koralle/images/Coral_Mask_bleaching_test.tif")
+  stack("E:/Koralle/images/Coral_Mask_10m_test.tif")
 coral_dop_test <-
-  stack("E:/Koralle/images/Coral_Dop_bleaching_test.tif")
+  stack("E:/Koralle/images/Coral_Dop_10m_test.tif")
 target_rst <-
   subset_ds(
     input_raster = coral_mask_test,
-    path = "E:/Koralle/images/Cor_bleaching_test/",
+    path = "E:/Koralle/images/Cor_test_10/",
     mask = TRUE,
     model_input_shape = model_input_shape
   )
 subset_ds(
   input_raster = coral_dop_test,
-  path = "E:/Koralle/images/Dop_bleaching_test/",
+  path = "E:/Koralle/images/Dop_test_10/",
   mask = FALSE,
   model_input_shape = model_input_shape
 )
 # write the target_rst to later rebuild your image
 writeRaster(
   target_rst,
-  file.path("E:/Koralle/images/models/model_bleaching_test/","coral_mask_bleaching_test_target.tif"),
+  file.path("E:/Koralle/images/models/model_test_10/","coral_mask_10m_test_target.tif"),
   overwrite = T
 )
 test_file <- data.frame(
   img = list.files(
-    file.path("E:/Koralle/images/Dop_bleaching_test"),
+    file.path("E:/Koralle/images/Dop_test_10"),
     full.names = T,
     pattern = "*.png"
   ),
   mask = list.files(
-    file.path("E:/Koralle/images/Cor_bleaching_test"),
+    file.path("E:/Koralle/images/Cor_test_10"),
     full.names = T,
     pattern = "*.png"
   )
@@ -639,7 +676,7 @@ testing_dataset <-
   )
 # load a U-Net
 unet_model  <-
-  load_model_hdf5(file.path("E:/Koralle/images/models/", "unet_corals_bleaching.hdf5"),
+  load_model_hdf5(file.path("E:/Koralle/images/models/", "unet_corals_10.hdf5"),
                   compile = TRUE)
 # evaluate the model with test set 
 ev <- unet_model$evaluate(testing_dataset) 
@@ -647,7 +684,7 @@ ev <- unet_model$evaluate(testing_dataset)
 prediction_dataset <-
   prepare_ds(
     predict = TRUE,
-    subsets_path =  paste0(file.path("E:/Koralle/images/Dop_bleaching_test/")),
+    subsets_path =  paste0(file.path("E:/Koralle/images/Dop_test_10/")),
     model_input_shape = model_input_shape,
     batch_size = batch_size
   )
@@ -687,6 +724,102 @@ for (i in t_sample) {
   ))
   plot(out)
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # function to rebuild your image
 rebuild_img <-
   function(pred_subsets,
@@ -735,11 +868,11 @@ rebuild_img <-
       destination = paste0(result_folder, "/mosaic.tif")
     )
   }
-target_rst <- raster(file.path("E:/Koralle/images/models/model_bleaching_test/","coral_mask_bleaching_test_target.tif"))
+target_rst <- raster(file.path("E:/Koralle/images/models/model_test_10/","coral_mask_10m_test_target.tif"))
 # make the actual prediction
 pred_subsets <- predict(object = unet_model, x = prediction_dataset)
 # name your output path
-model_name <- "unet_bleaching_abc"
+model_name <- "unet_abc_10"
 # rebuild .tif from each patch
 rebuild_img(
   pred_subsets = pred_subsets,
