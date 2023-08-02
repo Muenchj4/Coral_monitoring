@@ -3,6 +3,7 @@ output:
   word_document: default
   html_document: default
 ---
+
 #-----------------------------
 require(envimaR)
 # MANDANTORY: defining the root folder DO NOT change this line
@@ -563,6 +564,7 @@ hist <- unet_model %>% fit(
 # save the model
 unet_model %>% save_model_hdf5(file.path("E:/Koralle/images/models/", "unet_corals_10m_03_22_bleaching.hdf5"), overwrite=T)
 
+unet_model
 plot(hist)
 
 # load the test data
@@ -589,6 +591,8 @@ writeRaster(
   file.path("E:/Koralle/images/models/model_test_10m_03_22_bleaching/","coral_mask_bleaching_10m_03_22_test_target.tif"),
   overwrite = T
 )
+
+#list and prepare the files again
 test_file <- data.frame(
   img = list.files(
     file.path("E:/Koralle/images/Dop_test_bleaching_10m_03_22"),
@@ -708,6 +712,8 @@ rebuild_img <-
       destination = paste0(result_folder, "/mosaic.tif")
     )
   }
+  
+#load target raster
 target_rst <- raster(file.path("E:/Koralle/images/models/model_test_10m_03_22_bleaching/","coral_mask_bleaching_10m_03_22_test_target.tif"), overwrite=T)
 # make the actual prediction
 pred_subsets <- predict(object = unet_model, x = prediction_dataset)
