@@ -1,3 +1,8 @@
+---
+output:
+  word_document: default
+  html_document: default
+---
 #-----------------------------
 require(envimaR)
 # MANDANTORY: defining the root folder DO NOT change this line
@@ -583,6 +588,8 @@ writeRaster(
   file.path("E:/Koralle/images/models/model_test_2017_bleaching/","coral_mask_bleaching_2017_test_target.tif"),
   overwrite = T
 )
+
+#list and prepare files again
 test_file <- data.frame(
   img = list.files(
     file.path("E:/Koralle/images/Dop_test_bleaching_2017"),
@@ -702,6 +709,7 @@ rebuild_img <-
       destination = paste0(result_folder, "/mosaic.tif")
     )
   }
+#load target raster
 target_rst <- raster(file.path("E:/Koralle/images/models/model_test_2017_bleaching/","coral_mask_bleaching_2017_test_target.tif"), overwrite=T)
 # make the actual prediction
 pred_subsets <- predict(object = unet_model, x = prediction_dataset)
