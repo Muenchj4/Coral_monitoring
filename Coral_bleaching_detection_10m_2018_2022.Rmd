@@ -3,7 +3,7 @@ output:
   word_document: default
   html_document: default
 ---
-#-----------------------------
+#----------
 require(envimaR)
 # MANDANTORY: defining the root folder DO NOT change this line
 rootDIR = "C:/Users/jomue/edu/geoAI"
@@ -558,6 +558,7 @@ hist <- unet_model %>% fit(
 # save the model
 unet_model %>% save_model_hdf5(file.path("E:/Koralle/images/models/", "unet_corals_2018.hdf5"))
 
+unet_model
 plot(hist)
 
 # load the test data
@@ -584,6 +585,8 @@ writeRaster(
   file.path("E:/Koralle/images/models/model_test_2018/","coral_mask_2018_test_target.tif"),
   overwrite = T
 )
+
+#list and prepare the files again
 test_file <- data.frame(
   img = list.files(
     file.path("E:/Koralle/images/Dop_test_2018"),
@@ -703,6 +706,7 @@ rebuild_img <-
       destination = paste0(result_folder, "/mosaic.tif")
     )
   }
+#load target raster
 target_rst <- raster(file.path("E:/Koralle/images/models/model_test_2018/","coral_mask_2018_test_target.tif"))
 # make the actual prediction
 pred_subsets <- predict(object = unet_model, x = prediction_dataset)
