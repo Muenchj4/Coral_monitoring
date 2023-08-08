@@ -4,7 +4,6 @@ output:
   html_document: default
 ---
 
-#-----------------------------
 require(envimaR)
 # MANDANTORY: defining the root folder DO NOT change this line
 rootDIR = "C:/Users/jomue/edu/geoAI"
@@ -35,8 +34,8 @@ raster::writeRaster(rasterized_vector,
                     ("E:/Koralle/images/Coral_Mask_10m_03_22_bleaching.tif"),
                     overwrite = T)
 # divide to training and testing extent
-e_test <- raster::extent(3e+05, 7390240, 320000, 74500000)
-e_train <- raster::extent(320000, 7620000, 409800, 7500040)
+e_test <- raster::extent(3e+05, 7390240, 409800, 74300000)
+e_train <- raster::extent(3e+05, 74300000, 409800, 7500040)
 
 coral_mask_train <- raster::crop(rasterized_vector, e_train)
 coral_dop_train <- raster::crop(Coral_ras, e_train)
@@ -195,10 +194,13 @@ list_masks <-
              full.names = TRUE,
              pattern = "*.png")
 
+
 # create a data fram
 df = data.frame(list_dops, list_masks)
 
+
 remove_files(df)
+
 
 # list the files again
 files <- data.frame(
@@ -726,4 +728,7 @@ rebuild_img(
   target_rst = target_rst,
   model_name = model_name
 )
+
+image<-stack("E:/Koralle/images/prediction/unet_abc_bleaching_10m_03_22/mosaic.tif")
+plot(image)
 
