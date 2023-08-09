@@ -34,8 +34,8 @@ raster::writeRaster(rasterized_vector,
                     ("E:/Koralle/images/Coral_Mask_2018_bleaching.tif"),
                     overwrite = T)
 # divide to training and testing extent
-e_test <- raster::extent(3e+05, 7390240, 320000, 74500000)
-e_train <- raster::extent(320000, 74500000, 409800, 7500040)
+e_test <- raster::extent(3e+05, 7390240, 409800, 74300000)
+e_train <- raster::extent(3e+05, 74300000, 409800, 7500040)
 
 coral_mask_train <- raster::crop(rasterized_vector, e_train)
 coral_dop_train <- raster::crop(Coral_ras, e_train)
