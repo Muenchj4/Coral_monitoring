@@ -1,0 +1,26 @@
+CrossClassCode,2022,2018,PixelSum,Area [metre^2],
+1,Koralle,Koralle,1094972.0,109497200.0,
+2,Koralle,gebleichte Koralle,138614.0,13861400.0,
+4,Koralle,Meerwasser,11976.0,1197600.0,
+7,Koralle,Wolke,26916.0,2691600.0,
+3,gebleichte Koralle,Koralle,7210.0,721000.0,
+5,gebleichte Koralle,gebleichte Koralle,53729.0,5372900.0,
+8,gebleichte Koralle,Meerwasser,289874.0,28987400.0,
+11,gebleichte Koralle,Wolke,24196.0,2419600.0,
+6,Meerwasser,Koralle,9758.0,975800.0,
+9,Meerwasser,gebleichte Koralle,60314947.0,6031494700.0,
+12,Meerwasser,Meerwasser,55106241.0,5510624100.0,
+14,Meerwasser,Wolke,2451623.0,245162300.0,
+10,Wolke,Koralle,339.0,33900.0,
+13,Wolke,gebleichte Koralle,1085.0,108500.0,
+15,Wolke,Meerwasser,947901.0,94790100.0,
+16,Wolke,Wolke,81019.0,8101900.0,
+,,,,,
+,> LAND COVER CHANGE MATRIX [metre^2],,,,
+,2022,,,,
+2018,Koralle,gebleichte Koralle,Meerwasser,Wolke,Total
+Koralle,109497200,721000,975800,33900,111227900
+gebleichte Koralle,13861400,5372900,6031494700,108500,6050837500
+Meerwasser,1197600,28987400,5510624100,94790100,5635599200
+Wolke,2691600,2419600,245162300,8101900,258375400
+Total,127247800,37500900,11788256900,103034400,12056040000
