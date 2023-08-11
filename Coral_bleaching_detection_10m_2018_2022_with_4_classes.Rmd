@@ -726,4 +726,14 @@ rebuild_img(
 
 image<-stack("E:/Koralle/images/prediction/unet_abc_bleaching_2018/mosaic.tif")
 plot(image)
+image
+
+image_2<-stack("E:/Koralle/images/prediction/unet_abc_bleaching_2018/_out_679.tif")
+plot(image_2)
+
+image_3<-stack("E:/Koralle/images/prediction/unet_abc_bleaching_2018/_out_784.tif")
+plot(image_3)
+
+image_4<-stack("E:/Koralle/images/prediction/unet_abc_bleaching_2018/_out_848.tif")
+plot(image_4)
 
